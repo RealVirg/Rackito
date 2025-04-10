@@ -136,3 +136,12 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# URL для перенаправления после входа
+LOGIN_REDIRECT_URL = 'RackitoMap:map_view'
+
+# URL страницы входа (на которую перенаправляет login_required)
+LOGIN_URL = 'index' # Имя URL нашего index_view
+
+# URL для перенаправления после выхода (необязательно)
+# LOGOUT_REDIRECT_URL = 'index'

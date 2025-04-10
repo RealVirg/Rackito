@@ -1,0 +1,172 @@
+{% extends 'base_template.html' %}
+{% load static %} {# Загружаем тег static #}
+
+{% block title %}Карта Rackito{% endblock %}
+
+{% block styles %}
+    {{ block.super }} {# Включаем стили из базового шаблона, если они есть #}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+    <style>
+        #map {
+            height: 600px; /* Задаем высоту карты */
+            width: 100%;
+        }
+        .header-controls select {
+            margin-right: 10px; /* Небольшой отступ для селектора */
+        }
+        /* Стили для кастомных иконок маркеров (пример) */
+        .custom-map-marker-icon {
+            /* Можно задать общие стили, если нужно */
+            border-radius: 50%;
+            border: 1px solid grey;
+        }
+    </style>
+{% endblock %}
+
+{% block city_selector %}
+    <select id="city-select">
+        <option value="">Выберите город...</option> {# Начальная опция #}
+        <!-- Опции будут добавлены динамически -->
+    </select>
+{% endblock %}
+
+{% block content %}
+    <h1>Карта</h1>
+    <div id="map"></div>
+{% endblock %}
+
+{% block scripts %}
+    {{ block.super }} {# Включаем скрипты из базового шаблона, если они есть #}
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+    <script>
+        const citySelect = document.getElementById('city-select');
+        let cityData = []; // Массив для хранения данных о городах
+        const initialZoom = 11; // Начальный зум
+        const defaultCoords = [55.7558, 37.6173]; // Координаты по умолчанию (Москва)
+
+        // URL для получения точек (используем тег url)
+        const pointsUrl = "{% url 'RackitoMap:get_map_points' %}";
+
+        // Инициализация карты
+        var map = L.map('map').setView(defaultCoords, initialZoom);
+
+        // Слой для маркеров точек
+        var pointsLayer = L.layerGroup().addTo(map);
+
+        // Добавление слоя OpenStreetMap
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+
+        // --- Загрузка и отображение точек --- //
+
+        async function loadAndDisplayPoints() {
+            const bounds = map.getBounds();
+            const url = new URL(pointsUrl, window.location.origin);
+            url.searchParams.append('south', bounds.getSouth());
+            url.searchParams.append('west', bounds.getWest());
+            url.searchParams.append('north', bounds.getNorth());
+            url.searchParams.append('east', bounds.getEast());
+
+            console.log("Fetching points from:", url.toString()); // Для отладки
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const points = await response.json();
+
+                // Очищаем предыдущие маркеры
+                pointsLayer.clearLayers();
+
+                // Добавляем новые маркеры
+                points.forEach(point => {
+                    let markerIcon;
+                    if (point.marker_icon_url) {
+                        markerIcon = L.icon({
+                            iconUrl: point.marker_icon_url,
+                            iconSize: [32, 32], // Размер иконки (пример)
+                            iconAnchor: [16, 32], // Точка привязки (низ по центру)
+                            popupAnchor: [0, -32], // Смещение попапа
+                            className: 'custom-map-marker-icon' // Добавляем класс для стилизации
+                        });
+                    } else {
+                        // Используем иконку по умолчанию, если нет кастомной
+                        markerIcon = L.icon({
+                             iconUrl: "{% static 'leaflet/images/marker-icon.png' %}", // Путь к стандартной иконке
+                             shadowUrl: "{% static 'leaflet/images/marker-shadow.png' %}",
+                             iconSize: [25, 41],
+                             iconAnchor: [12, 41],
+                             popupAnchor: [1, -34],
+                             shadowSize: [41, 41]
+                        });
+                    }
+
+                    const marker = L.marker([point.lat, point.lon], { icon: markerIcon });
+
+                    if (point.popup_text) {
+                        marker.bindPopup(point.popup_text);
+                    }
+
+                    pointsLayer.addLayer(marker);
+                });
+                console.log(`Displayed ${points.length} points.`); // Для отладки
+            } catch (error) {
+                console.error("Не удалось загрузить или отобразить точки:", error);
+            }
+        }
+
+        // Загрузка точек при инициализации и после перемещения карты
+        map.on('load', loadAndDisplayPoints);
+        map.on('moveend', loadAndDisplayPoints);
+
+        // --- Логика выбора города (обновлена) --- //
+
+        async function loadCities() {
+             try {
+                const response = await fetch("{% static 'cities_russia.json' %}");
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                cityData = await response.json();
+                cityData.sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+
+                cityData.forEach((city, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = city.name;
+                    citySelect.appendChild(option);
+                });
+
+                const moscowIndex = cityData.findIndex(city => city.name === "Москва");
+                if (moscowIndex !== -1) {
+                    citySelect.value = moscowIndex;
+                    // Установка вида инициирует 'moveend', точки загрузятся автоматически
+                    map.setView(cityData[moscowIndex].coords, initialZoom);
+                } else {
+                    citySelect.value = "";
+                    // Если Москвы нет, точки загрузятся для вида по умолчанию через 'moveend'
+                    // или 'load', если карта еще не загрузилась
+                }
+            } catch (error) {
+                console.error("Не удалось загрузить города:", error);
+            }
+        }
+
+        citySelect.addEventListener('change', function() {
+            const selectedIndex = this.value;
+            if (selectedIndex !== "" && cityData[selectedIndex]) {
+                const coords = cityData[selectedIndex].coords;
+                 // Установка вида инициирует 'moveend', точки загрузятся автоматически
+                map.setView(coords, initialZoom);
+            }
+        });
+
+        loadCities();
+
+    </script>
+{% endblock %} 

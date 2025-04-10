@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Базовый шаблон{% endblock %}</title>
+    {# Здесь можно подключить CSS стили в будущем #}
+    {% block styles %}
+    {# Дополнительные стили можно добавить здесь #}
+    {% endblock %}
+</head>
+<body>
+    <header>
+        {% block header %}
+        <nav>
+            <!-- Заглушка для навигационной панели -->
+            <p>Навигация</p>
+        </nav>
+        <div class="header-controls">
+            {% block city_selector %}
+            {# Сюда можно будет вставить селектор города #}
+            {% endblock %}
+            <!-- Заглушка для кнопок команд -->
+            <p>Кнопки команд</p>
+        </div>
+        {% endblock %}
+    </header>
+
+    {# Глобальный блок для сообщений Django #}
+    {% if messages %}
+        <ul class="messages" style="list-style: none; padding: 10px 20px; margin: 10px 0; background-color: #f0f0f0;">
+            {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %} style="color: {% if message.tags == 'error' %}red{% elif message.tags == 'success' %}green{% elif message.tags == 'warning' %}orange{% else %}black{% endif %};">{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <main>
+        {% block content %}
+        <!-- Основной контент страницы будет здесь -->
+        {% endblock %}
+    </main>
+
+    <footer>
+        {% block footer %}
+        <!-- Заглушка для футера -->
+        <p>Информация в футере</p>
+        {% endblock %}
+    </footer>
+
+    {# Здесь можно подключить JS скрипты в будущем #}
+    {% block scripts %}
+    {# Дополнительные скрипты можно добавить здесь #}
+    {% endblock %}
+</body>
+</html>
