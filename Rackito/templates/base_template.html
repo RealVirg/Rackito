@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Базовый шаблон{% endblock %}</title>
+    <title>{% block title %}Rackito{% endblock %}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    {# Добавляем иконку сайта #}
+    <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
     {# Здесь можно подключить CSS стили в будущем #}
     {% block styles %}
     {# Дополнительные стили можно добавить здесь #}
@@ -25,15 +29,6 @@
         </div>
         {% endblock %}
     </header>
-
-    {# Глобальный блок для сообщений Django #}
-    {% if messages %}
-        <ul class="messages" style="list-style: none; padding: 10px 20px; margin: 10px 0; background-color: #f0f0f0;">
-            {% for message in messages %}
-                <li{% if message.tags %} class="{{ message.tags }}"{% endif %} style="color: {% if message.tags == 'error' %}red{% elif message.tags == 'success' %}green{% elif message.tags == 'warning' %}orange{% else %}black{% endif %};">{{ message }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
 
     <main>
         {% block content %}

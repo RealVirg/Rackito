@@ -28,6 +28,16 @@ DEBUG = os.environ.get('DEBUG') == 'True'
 
 ALLOWED_HOSTS = ['*']
 
+# LocationIQ API Key (загружается из переменных окружения)
+LOCATIONIQ_API_KEY = os.environ.get('LOCATIONIQ_API_KEY')
+
+# Проверка, загружен ли ключ (опционально, но полезно)
+if not LOCATIONIQ_API_KEY:
+    print("ПРЕДУПРЕЖДЕНИЕ: Переменная окружения LOCATIONIQ_API_KEY не установлена!")
+    # Можно вызвать исключение, если ключ абсолютно необходим для работы приложения
+    # from django.core.exceptions import ImproperlyConfigured
+    # raise ImproperlyConfigured("LOCATIONIQ_API_KEY должен быть установлен как переменная окружения")
+
 
 # Application definition
 
@@ -126,7 +136,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
-    BASE_DIR / 'static',
+    BASE_DIR.parent / 'static',
 ]
 
 MEDIA_URL = '/media/'

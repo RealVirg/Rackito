@@ -12,4 +12,6 @@ urlpatterns = [
     path('map/points/', views.get_map_points_in_bounds, name='get_map_points'),
     # Возможно, главный URL для отображения самой карты?
     # path('', views.map_view, name='map_view'), # Раскомментируйте и создайте view, если нужно
+    # Добавляем новый URL для обратного геокодирования
+    path('reverse-geocode/', views.reverse_geocode_proxy, name='reverse_geocode_proxy'),
 ] 

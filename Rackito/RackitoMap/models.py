@@ -43,30 +43,28 @@ class Point(models.Model):
         verbose_name = "Точка на карте"
         verbose_name_plural = "Точки на карте"
 
-class PhoneVerification(models.Model):
-    """Модель для хранения кодов верификации по номеру телефона."""
-    # Связываем с пользователем, который регистрируется
-    # Используем AUTH_USER_MODEL для гибкости
+# Модель PhoneVerification удалена
+# class PhoneVerification(models.Model):
+#     ...
+
+# Добавляем модель EmailVerification
+class EmailVerification(models.Model):
+    """Модель для хранения кодов верификации по email."""
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='phone_verification'
-    )
-    phone_number = models.CharField(
-        max_length=20,
-        unique=True, # Один номер - один код (до верификации)
-        verbose_name="Номер телефона"
+        related_name='email_verification'
     )
     code = models.CharField(max_length=6, verbose_name="Код верификации")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Время создания")
-    # Можно добавить поле is_verified, если нужно хранить факт верификации
-    # Или просто удалять запись после успешной верификации
 
     def __str__(self):
-        return f"Верификация для {self.user.username} ({self.phone_number})"
+        return f"Верификация Email для {self.user.username}"
 
     class Meta:
-        verbose_name = "Верификация телефона"
-        verbose_name_plural = "Верификации телефонов"
-        # Индекс для быстрого поиска по телефону
-        indexes = [models.Index(fields=['phone_number'])]
+        verbose_name = "Верификация Email"
+        verbose_name_plural = "Верификации Email"
+
+# Не забудьте создать и применить миграции:
+# python manage.py makemigrations RackitoMap
+# python manage.py migrate

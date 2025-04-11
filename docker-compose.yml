@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: python manage.py runserver 0.0.0.0:8000
+    command: sh -c "python Rackito/manage.py collectstatic --noinput && python Rackito/manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/app
       - static_volume:/app/static

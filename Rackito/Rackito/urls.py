@@ -18,24 +18,27 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 # Импортируем views
-from RackitoMap.views import index_view, register_view, verify_phone_view
+from RackitoMap.views import index_view, register_view, verify_email_view
+# Импортируем стандартные представления аутентификации
+from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     # URL для аутентификации (login, logout, password_reset, etc.)
-    # Заменяем стандартный login своим index_view
-    # Стандартный logout и другие можно оставить
-    path('accounts/login/', index_view, name='login'), # Переопределяем login
+    # Используем стандартный LoginView для обработки /accounts/login/
+    # Указываем ему использовать наш шаблон index.html
+    path('accounts/login/', auth_views.LoginView.as_view(template_name='index.html'), name='login'),
+    # Подключаем остальные стандартные URL аутентификации (logout, etc.)
     path('accounts/', include('django.contrib.auth.urls')),
 
     # URL регистрации и верификации
     path('register/', register_view, name='register'),
-    path('verify-phone/', verify_phone_view, name='verify_phone'),
+    path('verify-email/', verify_email_view, name='verify_email'),
 
     # URL приложения карты
-    path('', include('RackitoMap.urls')), # Подключает /map/ и /map/points/
+    path('app/', include('RackitoMap.urls')), # Подключает /map/ и /map/points/
 
-    # Корневой URL ведет на страницу входа/регистрации
+    # Корневой URL ведет на страницу входа/регистрации (отображается через index_view)
     path('', index_view, name='index'),
 ]
 

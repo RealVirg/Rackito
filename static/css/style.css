@@ -1,0 +1,323 @@
+html {
+    height: 100%; /* Добавляем явную высоту */
+    min-height: 100vh; /* Убедимся, что html тоже занимает всю высоту */
+}
+
+body {
+    height: 100%; /* Добавляем явную высоту */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Более современный шрифт */
+    background-color: #f4f7f9; /* Очень светлый серо-синий фон */
+    color: #333;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+h1, h2 {
+    color: #2980b9; /* Belize Hole Blue для заголовков */
+    text-align: center;
+}
+
+header {
+    background-color: #ffffff; /* Белый хедер */
+    padding: 15px 30px;
+    border-bottom: 1px solid #e0e6ed; /* Светлая граница */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+header h1 {
+    margin: 0;
+    color: #3498db; /* Peter River Blue */
+    font-size: 1.8em;
+}
+
+.city-selector {
+    /* Убираем city-selector со страницы входа */
+    display: none;
+}
+
+/* Стили для основного контейнера контента (предполагаем <main>) */
+main {
+    flex: 1 0 auto; /* Растягиваем main на всю доступную высоту */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+    /* Устанавливаем предоставленное изображение как фон */
+    background-image: url('../img/map-background.png'); /* Путь относительно CSS файла, исправлено на .png */
+    background-size: cover; /* Масштабируем изображение, чтобы покрыть всю область */
+    background-position: center center; /* Центрируем изображение */
+    background-repeat: no-repeat; /* Не повторяем изображение */
+    /* Удаляем предыдущие фоновые градиенты и цвет */
+    /* background-color: #eaf2f8; */
+    /* background-image: ... */
+    /* background-size: ... */
+}
+
+.content {
+    /* Убираем стили растягивания и центрирования отсюда */
+    /* flex: 1 0 auto; */
+    /* padding: 20px; */
+    /* display: flex; */
+    /* justify-content: center; */
+    /* align-items: center; */
+    width: 100%; /* Оставляем, чтобы .auth-container мог использовать % */
+    box-sizing: border-box;
+}
+
+.auth-container {
+    display: flex; /* Flex остается */
+    justify-content: center; /* Центрируем auth-block */
+    align-items: center; /* Центрируем auth-block */
+    width: 100%;
+    max-width: 450px; /* Уменьшаем максимальную ширину для компактности */
+    padding: 20px; /* Добавляем padding к контейнеру */
+    box-sizing: border-box;
+}
+
+.auth-block {
+    background-color: #ffffff; /* Белый фон */
+    border: none; /* Убираем рамку */
+    padding: 30px 40px 40px 40px; /* Уменьшен верхний padding до 30px */
+    width: 100%; /* Занимает всю ширину auth-container */
+    border-radius: 12px; /* Более скругленные углы */
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1); /* Более выраженная тень */
+    box-sizing: border-box;
+}
+
+.auth-block h2 {
+    margin-top: 0;
+    margin-bottom: 30px; /* Больше отступ снизу */
+    color: #2980b9; /* Belize Hole Blue */
+    border-bottom: 1px solid #e0e6ed; /* Светлая граница */
+    padding-bottom: 15px;
+    font-size: 1.6em;
+}
+
+form p {
+    margin-bottom: 20px; /* Увеличиваем отступ между полями */
+}
+
+label {
+    display: block;
+    margin-bottom: 8px; /* Отступ под меткой */
+    font-weight: 600; /* Полужирный */
+    color: #555;
+    font-size: 0.95em;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="email"],
+select {
+    width: 100%;
+    padding: 12px 15px; /* Увеличиваем padding */
+    border: 1px solid #d1d9e0; /* Граница поля */
+    border-radius: 6px; /* Скругленные углы */
+    box-sizing: border-box;
+    background-color: #fdfdfe; /* Чуть отличный от белого фон */
+    font-size: 1em;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+select:focus {
+    border-color: #3498db; /* Peter River Blue при фокусе */
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2); /* Синяя тень при фокусе */
+}
+
+/* Стили для строки с меткой и ссылкой "Забыли пароль?" */
+.label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+}
+
+/* Стили для ссылки "Забыли пароль?" */
+.forgot-password-link {
+    font-size: 0.9em;
+    font-weight: normal;
+}
+
+.forgot-password-link a {
+     color: #3498db; /* Peter River Blue */
+     text-decoration: none;
+}
+.forgot-password-link a:hover {
+     color: #2980b9; /* Belize Hole Blue */
+     text-decoration: underline;
+}
+
+/* Стили для контейнера кнопок */
+.button-row {
+    display: flex;
+    justify-content: space-between; /* Кнопки по краям */
+    gap: 15px;
+    margin-top: 25px; /* Больше отступ сверху */
+}
+
+/* Общие стили для кнопок (включая ссылку-кнопку) */
+.button, button[type="submit"] {
+    background-color: #3498db; /* Peter River Blue */
+    color: white;
+    padding: 14px 20px; /* Увеличен padding */
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: bold; /* Жирный шрифт */
+    text-align: center;
+    text-decoration: none;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    flex-basis: 48%; /* Примерная ширина, чтобы justify-content работал */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.button:hover, button[type="submit"]:hover {
+    background-color: #2980b9; /* Belize Hole Blue при наведении */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Дополнительные стили для кнопки регистрации */
+.register-button {
+    background-color: #ffffff; /* Белый фон */
+    color: #3498db; /* Peter River Blue текст */
+    border: 1px solid #d1d9e0; /* Светлая граница */
+}
+
+.register-button:hover {
+    background-color: #f8fafd; /* Очень светлый синий фон */
+    color: #2980b9; /* Belize Hole Blue текст */
+    border-color: #a6b9c8; /* Темнее граница */
+}
+
+/* Убираем старые стили ссылок внутри auth-block */
+.auth-block a:not(.button) {
+   /* Стили для ссылок теперь в .forgot-password-link a */
+   color: inherit; /* Наследуем цвет по умолчанию */
+}
+
+.auth-block a:not(.button):hover {
+   /* Стили для ссылок теперь в .forgot-password-link a */
+}
+
+.error-message {
+    color: #c0392b; /* Pomegranate */
+    background-color: #fbeae5; /* Светлый красноватый */
+    border: 1px solid #eeb4af;
+    padding: 12px 15px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 0.95em;
+}
+
+footer {
+    background-color: #ffffff; /* Белый футер */
+    color: #555; /* Темно-серый текст */
+    text-align: center;
+    padding: 7px 20px; /* Уменьшен вертикальный padding до 7px */
+    margin-top: auto;
+    border-top: 1px solid #e0e6ed; /* Светлая граница */
+    font-size: 0.9em;
+    box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* --- Стили для тултипов (УДАЛЕНЫ, т.к. используем Tippy.js) --- */
+/*
+.tooltip {
+    ...
+}
+.tooltip::before {
+    ...
+}
+.form-field-wrapper input:focus + .tooltip,
+.form-field-wrapper select:focus + .tooltip,
+.form-field-wrapper textarea:focus + .tooltip {
+    ...
+}
+*/
+/* --- Конец стилей для тултипов --- */
+
+/* --- Кастомизация Tippy.js --- */
+/* Основной блок тултипа */
+.tippy-box[data-theme~='mytheme'] {
+  background-color: #2980b9; /* Belize Hole Blue - под стиль сайта */
+  color: #ffffff; /* Белый текст */
+  border-radius: 6px;
+  font-size: 0.9em;
+  line-height: 1.4;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  text-align: left; /* Выравнивание текста */
+}
+
+/* Стрелка тултипа */
+.tippy-box[data-theme~='mytheme'] .tippy-arrow {
+  color: #2980b9; /* Такой же цвет, как фон */
+}
+
+/* Контент внутри тултипа */
+.tippy-box[data-theme~='mytheme'] .tippy-content {
+  padding: 10px 14px;
+}
+/* --- Конец кастомизации Tippy.js --- */
+
+/* --- Стили для base_app.html --- */
+.app-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.app-header-content .logo-container h1 {
+    margin: 0; /* Убираем отступы у h1 внутри хедера */
+    font-size: 1.8em;
+}
+
+.app-nav a {
+    margin: 0 15px;
+    color: #3498db; /* Цвет ссылок в навигации */
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.app-nav a:hover {
+    color: #2980b9;
+    text-decoration: underline;
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+}
+
+.user-controls {
+    margin-left: 20px; /* Отступ слева от city-selector */
+    display: flex;
+    align-items: center;
+}
+
+.user-controls span {
+    margin-right: 15px;
+    color: #555;
+}
+
+.user-controls a {
+    margin-left: 15px;
+    color: #3498db;
+    text-decoration: none;
+}
+
+.user-controls a:hover {
+    color: #2980b9;
+    text-decoration: underline;
+}
+/* --- Конец стилей для base_app.html --- */ 

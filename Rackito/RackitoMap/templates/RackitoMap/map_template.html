@@ -1,39 +1,26 @@
-{% extends 'base_template.html' %}
+{% extends 'RackitoMap/base_app.html' %}
 {% load static %} {# Загружаем тег static #}
 
 {% block title %}Карта Rackito{% endblock %}
 
 {% block styles %}
-    {{ block.super }} {# Включаем стили из базового шаблона, если они есть #}
+    {{ block.super }} {# Включаем стили из базового шаблона (base_app.html), включая map_styles.css #}
+    {# Подключаем CSS для Leaflet #}
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
      crossorigin=""/>
-    <style>
-        #map {
-            height: 600px; /* Задаем высоту карты */
-            width: 100%;
-        }
-        .header-controls select {
-            margin-right: 10px; /* Небольшой отступ для селектора */
-        }
-        /* Стили для кастомных иконок маркеров (пример) */
-        .custom-map-marker-icon {
-            /* Можно задать общие стили, если нужно */
-            border-radius: 50%;
-            border: 1px solid grey;
-        }
-    </style>
-{% endblock %}
-
-{% block city_selector %}
-    <select id="city-select">
-        <option value="">Выберите город...</option> {# Начальная опция #}
-        <!-- Опции будут добавлены динамически -->
-    </select>
+    {# Убираем встроенный блок <style> - стили теперь в map_styles.css #}
 {% endblock %}
 
 {% block content %}
-    <h1>Карта</h1>
+    {# Виджет выбора города поверх карты #}
+    <div id="city-select-widget">
+         <label for="city-select" style="display: block; margin-bottom: 5px; font-weight: bold;">Город:</label> {# Добавим label для ясности #}
+         <select id="city-select">
+             <option value="">Выберите город...</option> {# Начальная опция #}
+             <!-- Опции будут добавлены динамически -->
+         </select>
+    </div>
     <div id="map"></div>
 {% endblock %}
 
@@ -43,6 +30,7 @@
      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
      crossorigin=""></script>
     <script>
+        // Находим селектор (он все еще имеет тот же ID)
         const citySelect = document.getElementById('city-select');
         let cityData = []; // Массив для хранения данных о городах
         const initialZoom = 11; // Начальный зум
@@ -51,13 +39,16 @@
         // URL для получения точек (используем тег url)
         const pointsUrl = "{% url 'RackitoMap:get_map_points' %}";
 
+        // Контейнер карты для изменения курсора
+        const mapContainer = document.getElementById('map');
+
         // Инициализация карты
         var map = L.map('map').setView(defaultCoords, initialZoom);
 
         // Слой для маркеров точек
         var pointsLayer = L.layerGroup().addTo(map);
 
-        // Добавление слоя OpenStreetMap
+        // Возвращаем стандартный слой OpenStreetMap
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -167,6 +158,147 @@
         });
 
         loadCities();
+
+        // --- Изменение курсора при перетаскивании --- //
+        if (mapContainer) {
+            map.on('mousedown', function () {
+                mapContainer.style.cursor = 'grabbing';
+            });
+
+            map.on('mouseup', function () {
+                mapContainer.style.cursor = 'pointer';
+            });
+            // Также возвращаем курсор, если он покинул карту во время перетаскивания
+            map.on('mouseout', function () {
+                if (mapContainer.style.cursor === 'grabbing') {
+                    mapContainer.style.cursor = 'pointer';
+                }
+            });
+        }
+
+        // --- Изменение курсора при зуме --- //
+        if (mapContainer) {
+            map.on('zoomstart', function () {
+                // Определяем направление зума (приближение или отдаление)
+                // К сожалению, событие zoomstart не предоставляет прямого способа узнать направление.
+                // Leaflet обычно сам меняет курсор (на crosshair при box zoom), но мы можем переопределить.
+                // Для простоты, установим zoom-out при любом начале зума.
+                // Если нужно точнее, потребуется отслеживать уровень зума.
+                mapContainer.style.cursor = 'zoom-in';
+            });
+
+            map.on('zoomend', function () {
+                // Возвращаем стандартный курсор после завершения зума
+                mapContainer.style.cursor = 'pointer';
+            });
+        }
+
+        // --- Пользовательское контекстное меню --- //
+        let customContextMenu = null; // Переменная для хранения меню
+
+        // Функция для создания меню (если его еще нет)
+        function createContextMenu() {
+            if (customContextMenu) return; // Создаем только один раз
+
+            customContextMenu = document.createElement('div');
+            customContextMenu.id = 'custom-context-menu';
+            customContextMenu.style.position = 'absolute'; // Позиционирование
+            customContextMenu.style.display = 'none'; // Скрыто по умолчанию
+            customContextMenu.style.zIndex = '1000'; // Поверх карты
+
+            const createPointButton = document.createElement('button');
+            createPointButton.textContent = 'Создать новую точку';
+            createPointButton.id = 'create-point-btn';
+            createPointButton.onclick = function() {
+                // Пока ничего не делаем, просто скрываем меню
+                console.log("Кнопка 'Создать новую точку' нажата."); // Для отладки
+                hideContextMenu();
+                // TODO: Добавить логику создания точки
+            };
+
+            customContextMenu.appendChild(createPointButton);
+            document.body.appendChild(customContextMenu); // Добавляем в body, чтобы избежать проблем с z-index внутри карты
+        }
+
+        // Функция для показа меню
+        function showContextMenu(event) {
+            createContextMenu(); // Убедимся, что меню создано
+            const point = event.originalEvent; // Получаем событие DOM
+            customContextMenu.style.left = `${point.pageX}px`;
+            customContextMenu.style.top = `${point.pageY}px`;
+            customContextMenu.style.display = 'block';
+        }
+
+        // Функция для скрытия меню
+        function hideContextMenu() {
+            if (customContextMenu) {
+                customContextMenu.style.display = 'none';
+            }
+        }
+
+        // Обработчик правого клика на карте
+        map.on('contextmenu', function(e) {
+            e.originalEvent.preventDefault(); // Отменяем стандартное меню браузера
+            showContextMenu(e);
+        });
+
+        // Скрываем меню при клике левой кнопкой на карте
+        map.on('click', hideContextMenu);
+
+        // Скрываем меню при начале перемещения карты
+        map.on('movestart', hideContextMenu);
+
+        // Скрываем меню при начале изменения масштаба
+        map.on('zoomstart', hideContextMenu);
+
+        // --- Обратное геокодирование по клику (через Django Proxy) --- //
+        /*
+        map.on('click', function(e) {
+            const lat = e.latlng.lat;
+            const lon = e.latlng.lng;
+
+            // URL нашего бэкенд-прокси
+            const proxyUrl = `{% url 'RackitoMap:reverse_geocode_proxy' %}?lat=${lat}&lon=${lon}`;
+
+            // Создаем временный попап с сообщением о загрузке
+            const popup = L.popup()
+                .setLatLng(e.latlng)
+                .setContent("Загрузка информации...")
+                .openOn(map);
+
+            // Делаем запрос к нашему Django бэкенду
+            fetch(proxyUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        // Пытаемся прочитать тело ошибки, если оно есть
+                        return response.json().then(errData => {
+                            throw new Error(errData.error || `HTTP error! status: ${response.status}`);
+                        }).catch(() => {
+                            // Если тело ошибки не JSON или пустое
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("Proxy response:", data); // Ответ от нашего бэкенда
+                    let popupContent = "Информация не найдена.";
+                    // Проверяем наличие display_name или поля error в ответе от бэкенда
+                    if (data && data.display_name) {
+                        popupContent = data.display_name;
+                    } else if (data.error) {
+                         popupContent = `Ошибка: ${data.error}`;
+                    }
+                    // Обновляем контент существующего попапа
+                    popup.setContent(popupContent);
+                })
+                .catch(error => {
+                    console.error("Ошибка запроса к прокси геокодирования:", error);
+                    // Отображаем текст ошибки из error.message
+                    popup.setContent(`Не удалось получить информацию: ${error.message}`);
+                });
+        });
+        */
 
     </script>
 {% endblock %} 

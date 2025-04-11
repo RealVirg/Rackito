@@ -1,0 +1,65 @@
+{% extends 'base_template.html' %}
+{% load static %}
+
+{% block title %}Добро пожаловать - Rackito{% endblock %}
+
+{% block header %}
+    {# Добавляем логотип рядом с заголовком #}
+    <div class="logo-container" style="display: flex; align-items: center; justify-content: center;">
+        <img src="{% static 'img/logo.png' %}" alt="Rackito Logo" style="height: 40px; margin-right: 10px;">
+        <h1>Rackito</h1>
+    </div>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+
+    {# Форма входа #}
+    <div class="auth-block">
+        <h2>Вход</h2>
+        <form method="post" action="{% url 'login' %}"> {# Используем стандартный URL входа Django #}
+            {% csrf_token %}
+            {# Здесь будут поля формы входа из django.contrib.auth.forms.AuthenticationForm #}
+            {# Вы можете использовать стандартные представления Django для аутентификации #}
+            {# или создать свои #}
+            <p>
+                <div class="label-row">
+                    <label for="id_username">Имя пользователя:</label>
+                    {# Пустой span или можно убрать, если не нужен элемент справа #}
+                </div>
+                <input type="text" name="username" autofocus required id="id_username">
+            </p>
+            <p>
+                <div class="label-row">
+                    <label for="id_password">Пароль:</label>
+                    <span class="forgot-password-link"><a href="#">Забыли пароль?</a></span>
+                </div>
+                <input type="password" name="password" required id="id_password">
+            </p>
+
+            {# Отображение ошибок формы, если они есть #}
+            {% if form.errors %}
+                <p class="error-message">Неправильное имя пользователя или пароль.</p>
+            {% endif %}
+
+            {# Скрытое поле для перенаправления после входа #}
+            <input type="hidden" name="next" value="/">
+
+            <div class="button-row">
+                <button type="submit">Войти</button>
+                {# Превращаем ссылку в кнопку с помощью классов #}
+                <a href="{% url 'register' %}" class="button register-button">Зарегистрироваться</a>
+            </div>
+        </form>
+        {# Ссылки перенесены или удалены #}
+    </div>
+
+    {# Блок регистрации удален #}
+</div>
+{% endblock %}
+
+{% block city_selector %}{% endblock %} {# Убираем селектор города с главной #}
+{% block footer %}
+    {# Можно оставить или изменить футер для главной #}
+    {{ block.super }}
+{% endblock %} 

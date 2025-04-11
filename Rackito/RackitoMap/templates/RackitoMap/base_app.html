@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Rackito{% endblock %}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    {# Устанавливаем иконку сайта #}
+    <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
+    {# Блок для дополнительных стилей страниц приложения #}
+    {% block styles %}
+    {# Подключаем основной CSS и map_styles.css #}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/map_styles.css' %}">
+    {# Убран встроенный стиль для z-index #}
+    {% endblock %}
+</head>
+<body>
+    <header>
+        {# Блок хедера для страниц приложения #}
+        {% block header %}
+        <div class="app-header-content">
+            <div class="logo-container">
+                 <img src="{% static 'img/logo.png' %}" alt="Rackito Logo">
+                 <h1><a href="{% url 'RackitoMap:map_view' %}">Rackito</a></h1>
+            </div>
+            <nav class="app-nav">
+                <a href="{% url 'RackitoMap:map_view' %}">Карта</a>
+                {# Другие будущие ссылки навигации #}
+                {# <a href="#">Мои места</a> #}
+                {# <a href="#">Друзья</a> #}
+            </nav>
+            <div class="header-controls">
+                 {# Удален блок city_selector #}
+                 <div class="user-controls">
+                     {# Ссылки пользователя #}
+                     <span class="username-link" id="username-toggle">{{ user.username }} ▼</span> {# Убираем "Привет, ", оставляем имя и стрелку #}
+                     <div class="user-dropdown" id="user-dropdown-menu">
+                        <a href="#">Профиль</a> {# Ссылка на профиль (пока #) #}
+                        {# Ссылка на выход теперь перенаправляет на страницу входа #}
+                        <a href="{% url 'logout' %}?next={% url 'login' %}">Выйти</a> {# Добавляем ?next={% url 'login' %} #}
+                     </div>
+                 </div>
+            </div>
+        </div>
+        {% endblock %}
+    </header>
+
+    <main> {# main теперь flex: 1 #}
+        {% block content %}
+        <!-- Основной контент страницы приложения будет здесь -->
+        {% endblock %}
+    </main>
+
+    <footer>
+        {# Блок футера для страниц приложения #}
+        {% block footer %}
+        <p>&copy; {% now "Y" %} Rackito App</p>
+        {% endblock %}
+    </footer>
+
+    {# Блок для дополнительных скриптов страниц приложения #}
+    {% block scripts %}
+    <script>
+        // Скрипт для выпадающего меню пользователя
+        const usernameToggle = document.getElementById('username-toggle');
+        const userDropdownMenu = document.getElementById('user-dropdown-menu');
+
+        if (usernameToggle && userDropdownMenu) {
+            usernameToggle.addEventListener('click', function(event) {
+                event.stopPropagation(); // Предотвращаем всплытие события
+                userDropdownMenu.style.display = userDropdownMenu.style.display === 'block' ? 'none' : 'block';
+            });
+
+            // Закрывать меню при клике вне его
+            document.addEventListener('click', function(event) {
+                if (!userDropdownMenu.contains(event.target) && !usernameToggle.contains(event.target)) {
+                    userDropdownMenu.style.display = 'none';
+                }
+            });
+        }
+    </script>
+    {% endblock %}
+</body>
+</html> 

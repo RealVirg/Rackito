@@ -1,0 +1,183 @@
+/* Стили из base_app.html */
+html,
+body {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+main {
+    flex: 1;
+    /* Занимает все доступное пространство */
+    display: flex;
+    /* Чтобы дочерние элементы могли использовать flex */
+    position: relative;
+    /* Для позиционирования виджета карты */
+    padding: 0;
+    /* Убираем внутренние отступы */
+}
+
+header {
+    flex-shrink: 0;
+    /* Не сжимается */
+}
+
+footer {
+    flex-shrink: 0;
+    /* Не сжимается */
+}
+
+.app-header-content {
+    display: flex;
+    justify-content: space-between;
+    /* Распределяет элементы по краям и центру */
+    align-items: center;
+    padding: 10px 20px;
+    /* Примерные отступы */
+    /* Другие стили хедера из style.css */
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+}
+
+.logo-container img {
+    height: 40px;
+    /* Как было */
+    margin-right: 10px;
+}
+
+.logo-container h1 a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.app-nav {
+    /* Стили для центральной навигации */
+    text-align: center;
+    /* Пример */
+}
+
+.user-controls {
+    position: relative;
+    /* Для позиционирования dropdown */
+}
+
+.user-dropdown {
+    display: none;
+    /* Скрыто по умолчанию */
+    position: absolute;
+    right: 0;
+    top: 100%;
+    /* Появляется под именем пользователя */
+    background-color: white;
+    /* Или цвет фона сайта */
+    border: 1px solid #ccc;
+    /* Пример рамки */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    /* Поверх других элементов */
+    min-width: 120px;
+    /* Минимальная ширина */
+    z-index: 9999 !important;
+}
+
+.user-dropdown a {
+    display: block;
+    padding: 8px 12px;
+    text-decoration: none;
+    color: #333;
+    /* Цвет текста ссылок */
+}
+
+.user-dropdown a:hover {
+    background-color: #f2f2f2;
+    /* Фон при наведении */
+}
+
+.user-controls .username-link {
+    /* Стиль для имени пользователя */
+    cursor: pointer;
+    /* Добавить стили, чтобы выглядело как ссылка или кнопка */
+}
+
+/* Стили из map_template.html */
+#map {
+    /* Карта теперь занимает всю высоту родительского main */
+    height: 100%;
+    width: 100%;
+    cursor: pointer; /* Устанавливаем курсор-указатель */
+}
+
+/* Стили для виджета выбора города */
+#city-select-widget {
+    position: absolute;
+    top: 20px;
+    /* Отступ сверху */
+    right: 20px;
+    /* Позиционирование справа */
+    left: auto;
+    /* Убираем явное позиционирование слева */
+    z-index: 1000;
+    /* Поверх карты */
+    background-color: rgba(255, 255, 255, 0.8);
+    /* Полупрозрачный белый фон */
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    /* Дополнительные стили для соответствия style.css можно добавить здесь */
+}
+
+#city-select-widget select {
+    /* Стилизуем сам select, если нужно (например, шрифт, отступы) */
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+
+/* Стили для кастомных иконок маркеров (пример) */
+.custom-map-marker-icon {
+    /* Можно задать общие стили, если нужно */
+    border-radius: 50%;
+    border: 1px solid grey;
+}
+
+/* Скрываем флаг Leaflet в атрибуции */
+.leaflet-control-attribution svg.leaflet-attribution-flag {
+    display: none !important; /* Скрываем элемент флага */
+}
+
+/* Стили для кастомного контекстного меню */
+#custom-context-menu {
+    position: absolute; /* Необходимо для позиционирования */
+    z-index: 1000;      /* Поверх других элементов карты */
+    display: none;      /* Скрыто по умолчанию */
+    background-color: #ffffff; /* Цвет фона */
+    border: 1px solid #cccccc; /* Рамка */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15); /* Тень */
+    border-radius: 4px; /* Скругление углов */
+    min-width: 160px; /* Минимальная ширина */
+    padding: 5px 0;   /* Внутренние отступы */
+}
+
+#custom-context-menu button {
+    display: block;     /* Кнопка на всю ширину */
+    width: 100%;
+    padding: 8px 15px; /* Отступы внутри кнопки */
+    border: none;       /* Убрать рамку */
+    background-color: transparent; /* Прозрачный фон */
+    text-align: left;   /* Текст слева */
+    cursor: pointer;    /* Курсор-указатель */
+    font-size: 14px;    /* Размер шрифта */
+    color: #333333;   /* Цвет текста */
+}
+
+#custom-context-menu button:hover {
+    background-color: #f5f5f5; /* Цвет фона при наведении */
+} 

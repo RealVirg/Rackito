@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
-from django.http import JsonResponse
-from .models import Point, PhoneVerification
+from django.http import JsonResponse, HttpResponseBadRequest
+from .models import Point, EmailVerification
 import json
 import random
 from django.contrib.auth.forms import AuthenticationForm
@@ -8,7 +8,10 @@ from django.contrib.auth.decorators import login_required
 from .forms import UserRegistrationForm, VerifyCodeForm
 from django.contrib import messages
 from django.urls import reverse
-from django.contrib.auth import login
+from django.contrib.auth import login, get_user_model, authenticate, logout
+from django.conf import settings # Импортируем settings
+import requests # Импортируем requests для HTTP-запросов
+User = get_user_model()
 
 # Create your views here.
 
@@ -21,65 +24,61 @@ def index_view(request):
     return render(request, 'index.html', {'form': form})
 
 def register_view(request):
-    """Обработка регистрации нового пользователя."""
+    """Обработка регистрации нового пользователя с верификацией email."""
     if request.user.is_authenticated:
         return redirect('RackitoMap:map_view')
 
     if request.method == 'POST':
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
-            # Создаем пользователя, но пока не сохраняем в БД
             user = form.save(commit=False)
-            # Делаем пользователя неактивным до верификации телефона
             user.is_active = False
-            user.save() # Теперь сохраняем пользователя
+            user.save()
 
-            phone_number = form.cleaned_data['phone_number']
+            email = form.cleaned_data['email']
 
-            # Удаляем старые коды верификации для этого номера, если есть
-            PhoneVerification.objects.filter(phone_number=phone_number).delete()
+            # Удаляем старые коды верификации для этого email, если есть
+            EmailVerification.objects.filter(user=user).delete()
 
             # Генерируем код верификации
             verification_code = str(random.randint(100000, 999999))
 
-            # Создаем запись верификации
-            PhoneVerification.objects.create(
+            # Создаем запись верификации email
+            EmailVerification.objects.create(
                 user=user,
-                phone_number=phone_number,
                 code=verification_code
             )
 
-            # ---- ЗАГЛУШКА ДЛЯ ОТПРАВКИ SMS ----
-            print(f"\n--- КОД ВЕРИФИКАЦИИ для {phone_number}: {verification_code} ---\n")
-            # ЗАМЕНИТЬ НА РЕАЛЬНУЮ ОТПРАВКУ SMS ЧЕРЕЗ СЕРВИС
-            # Например: send_sms(phone_number, f"Ваш код: {verification_code}")
+            # ---- ЗАГЛУШКА ДЛЯ ОТПРАВКИ EMAIL ----
+            print(f"\n--- КОД ВЕРИФИКАЦИИ EMAIL для {email}: {verification_code} ---\n")
+            # ЗАМЕНИТЬ НА РЕАЛЬНУЮ ОТПРАВКУ EMAIL
+            # send_mail('Код верификации Rackito', f'Ваш код: {verification_code}', 'from@example.com', [email])
             # -------------------------------------
 
             # Сохраняем ID пользователя в сессии для следующего шага
             request.session['verification_user_id'] = user.id
-            messages.success(request, f'Регистрация почти завершена. Мы отправили код верификации на номер {phone_number}. Введите его ниже.')
-            return redirect('verify_phone') # Перенаправляем на страницу верификации
+            messages.success(request, f'Регистрация почти завершена. Мы отправили код верификации на адрес {email}. Введите его ниже.')
+            return redirect('verify_email') # Перенаправляем на страницу верификации email
         else:
-            # Если форма невалидна, ошибки отобразятся в шаблоне
             messages.error(request, 'Пожалуйста, исправьте ошибки в форме.')
     else:
         form = UserRegistrationForm()
 
     return render(request, 'registration/register.html', {'form': form})
 
-def verify_phone_view(request):
-    """Обработка ввода кода верификации."""
+def verify_email_view(request):
+    """Обработка ввода кода верификации email."""
     user_id = request.session.get('verification_user_id')
     if not user_id:
         messages.error(request, 'Сессия верификации истекла или недействительна. Пожалуйста, начните регистрацию заново.')
-        return redirect('register') # Имя URL страницы регистрации
+        return redirect('register')
 
     try:
-        verification = PhoneVerification.objects.get(user_id=user_id)
+        # Ищем запись верификации по user_id
+        verification = EmailVerification.objects.get(user_id=user_id)
         user = verification.user
-    except PhoneVerification.DoesNotExist:
+    except EmailVerification.DoesNotExist:
         messages.error(request, 'Не найдена запись верификации. Пожалуйста, начните регистрацию заново.')
-        # Очищаем сессию на всякий случай
         if 'verification_user_id' in request.session:
             del request.session['verification_user_id']
         return redirect('register')
@@ -94,36 +93,26 @@ def verify_phone_view(request):
         if form.is_valid():
             entered_code = form.cleaned_data['code']
 
-            # Проверяем код
             if entered_code == verification.code:
-                # Код верный, активируем пользователя
                 user.is_active = True
                 user.save()
-
-                # Удаляем запись верификации
                 verification.delete()
-
-                # Очищаем ID из сессии
                 if 'verification_user_id' in request.session:
                     del request.session['verification_user_id']
-
-                # Осуществляем вход пользователя
                 login(request, user)
-
-                messages.success(request, 'Телефон успешно подтвержден! Добро пожаловать!')
-                return redirect('RackitoMap:map_view') # Перенаправляем на карту
+                messages.success(request, 'Email успешно подтвержден! Добро пожаловать!')
+                return redirect('RackitoMap:map_view')
             else:
                 messages.error(request, 'Неверный код верификации. Попробуйте еще раз.')
-        # Если форма невалидна (например, пустое поле), ошибки покажутся в шаблоне
     else:
         form = VerifyCodeForm()
 
-    # Передаем номер телефона в контекст, чтобы напомнить пользователю
     context = {
         'form': form,
-        'phone_number': verification.phone_number
+        'email': user.email # Передаем email пользователя
     }
-    return render(request, 'registration/verify_phone.html', context)
+    # Используем новый шаблон verify_email.html
+    return render(request, 'registration/verify_email.html', context)
 
 def get_map_points_in_bounds(request):
     """Возвращает точки на карте, попадающие в заданные границы.
@@ -180,3 +169,41 @@ def map_view(request):
     # например, список тегов для фильтрации или начальные настройки карты.
     context = {}
     return render(request, 'RackitoMap/map_template.html', context)
+
+# Новая view для проксирования запроса обратного геокодирования
+@login_required # Убедимся, что только авторизованные пользователи могут это делать
+def reverse_geocode_proxy(request):
+    lat = request.GET.get('lat')
+    lon = request.GET.get('lon')
+
+    if not lat or not lon:
+        return HttpResponseBadRequest("Отсутствуют параметры 'lat' или 'lon'.")
+
+    try:
+        # Получаем ключ из настроек
+        api_key = settings.LOCATIONIQ_API_KEY
+        # Формируем URL для LocationIQ
+        locationiq_url = f"https://us1.locationiq.com/v1/reverse.php?key={api_key}&lat={lat}&lon={lon}&format=json&accept-language=ru&addressdetails=1"
+
+        # Делаем запрос к LocationIQ
+        response = requests.get(locationiq_url, timeout=10) # Таймаут 10 секунд
+        response.raise_for_status() # Вызовет исключение для плохих ответов (4xx или 5xx)
+
+        # Возвращаем ответ от LocationIQ как JsonResponse
+        # Важно: возвращаем именно json() ответа, а не весь объект response
+        return JsonResponse(response.json())
+
+    except requests.exceptions.RequestException as e:
+        # Обработка ошибок сети или API
+        print(f"Ошибка запроса к LocationIQ: {e}") # Логируем ошибку
+        return JsonResponse({'error': 'Не удалось связаться с сервисом геокодирования.'}, status=503) # Service Unavailable
+    except AttributeError:
+        # Если LOCATIONIQ_API_KEY не найден в settings
+        print("Ошибка: LOCATIONIQ_API_KEY не найден в настройках Django.")
+        return JsonResponse({'error': 'Ошибка конфигурации сервера.'}, status=500)
+    except Exception as e:
+        # Обработка других непредвиденных ошибок
+        print(f"Непредвиденная ошибка в reverse_geocode_proxy: {e}")
+        return JsonResponse({'error': 'Внутренняя ошибка сервера.'}, status=500)
+
+# --- Views для аутентификации --- #
