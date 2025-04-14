@@ -16,6 +16,12 @@ class Tag(models.Model):
 
 class Point(models.Model):
     """Модель для точки на карте."""
+    POINT_TYPES = [
+        ('event', 'Событие'),
+        # Добавьте сюда другие типы по необходимости
+        # ('place', 'Место'),
+    ]
+
     latitude = models.FloatField(verbose_name="Широта")
     longitude = models.FloatField(verbose_name="Долгота")
     marker_image = models.ImageField(
@@ -29,11 +35,24 @@ class Point(models.Model):
         related_name='points',
         verbose_name="Теги"
     )
+    point_type = models.CharField(
+        max_length=50,
+        choices=POINT_TYPES,
+        default='event',
+        verbose_name="Тип точки",
+        help_text="Тип метки на карте (например, событие, место)."
+    )
     popup_text = models.TextField(
         blank=True,
         null=True,
         verbose_name="Текст для всплывающего окна",
         help_text="Текст, который будет показан при клике/наведении на точку."
+    )
+    address = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Адрес",
+        help_text="Адрес, полученный с помощью обратного геокодирования."
     )
 
     def __str__(self):

@@ -9,7 +9,152 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
      crossorigin=""/>
-    {# Убираем встроенный блок <style> - стили теперь в map_styles.css #}
+    {# Подключаем CSS для Select2 #}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <style>
+        /* Стили виджета выбора города (могут быть уже в map_styles.css) */
+        #city-select-widget {
+            position: absolute;
+            top: 10px; /* Отступ от верха */
+            right: 10px; /* Отступ справа */
+            z-index: 1000; /* Поверх карты */
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+        }
+        #map {
+             /* Убедимся, что высота задана, например, через vh или calc */
+             height: calc(100vh - 56px); /* Пример: высота минус возможная шапка */
+             width: 100%;
+             cursor: pointer; /* Стандартный курсор для карты */
+        }
+
+        /* Стили для кастомного контекстного меню */
+        #custom-context-menu {
+            position: absolute;
+            background-color: white;
+            border: 1px solid #ccc;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            padding: 5px 0;
+            z-index: 1001; /* Выше карты, но ниже модального окна */
+            min-width: 150px; /* Минимальная ширина */
+            border-radius: 4px;
+        }
+        #custom-context-menu button {
+            display: block;
+            width: 100%;
+            padding: 8px 15px;
+            border: none;
+            background: none;
+            text-align: left;
+            cursor: pointer;
+            font-size: 14px;
+            color: #333;
+        }
+        #custom-context-menu button:hover {
+            background-color: #f0f0f0;
+        }
+
+
+        /* Стили для модального окна/формы */
+        #createPointModal {
+            display: none; /* Скрыто по умолчанию */
+            position: fixed; /* Фиксированное позиционирование */
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1050; /* Выше других элементов */
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            width: 90%;
+            max-width: 500px; /* Максимальная ширина */
+            border: 1px solid #ccc;
+        }
+        #createPointModal .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        #createPointModal .modal-header h5 {
+            margin-bottom: 0;
+        }
+        #createPointModal .close-button {
+            border: none;
+            background: none;
+            font-size: 1.5rem;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0; /* Убрать лишние отступы у кнопки закрытия */
+            margin-left: auto; /* Прижать вправо */
+        }
+        #createPointModal form label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        #createPointModal form input[type="text"],
+        #createPointModal form textarea,
+        #createPointModal form select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            box-sizing: border-box; /* Чтобы padding не увеличивал ширину */
+        }
+        /* Стили для Select2 */
+        .select2-container--default .select2-selection--multiple {
+            border: 1px solid #ced4da !important; /* Переопределяем границу */
+            border-radius: 4px !important;
+            min-height: 38px; /* Совпадение высоты с другими полями */
+            padding: 2px 8px; /* Небольшая подгонка отступов */
+        }
+         /* Улучшение отображения выбранных тегов */
+        .select2-container--default .select2-selection--multiple .select2-selection__choice {
+            background-color: #e9ecef;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            padding: 2px 5px;
+            margin-right: 5px;
+            margin-top: 4px; /* Небольшой отступ сверху */
+        }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+            color: #6c757d;
+            cursor: pointer;
+            margin-left: 5px;
+            font-weight: bold;
+        }
+        .select2-container--default .select2-search--inline .select2-search__field {
+            margin-top: 5px !important; /* Небольшой отступ для поля ввода */
+            width: 100% !important; /* Занимать всю доступную ширину */
+        }
+
+        #createPointModal form button {
+            padding: 10px 15px;
+            background-color: #198754; /* Зеленый Bootstrap */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #createPointModal form button[type="button"] {
+            background-color: #6c757d; /* Серый Bootstrap */
+            margin-left: 10px;
+        }
+
+        /* Стиль для увеличенного маркера при наведении */
+        .marker-hover {
+            transform: scale(1.2);
+            transform-origin: bottom center; /* Масштабировать от нижней центральной точки */
+            transition: transform 0.1s ease-in-out;
+        }
+    </style>
 {% endblock %}
 
 {% block content %}
@@ -21,7 +166,55 @@
              <!-- Опции будут добавлены динамически -->
          </select>
     </div>
+    {# <button id="createPointBtn" class="create-point-button">Создать точку</button> - УДАЛЕНО #}
     <div id="map"></div>
+
+    <!-- Модальное окно/Форма для создания точки -->
+    <div id="createPointModal">
+        <div class="modal-header">
+            <h5>Создать новую точку</h5>
+            <button type="button" class="close-button" onclick="closeCreatePointModal()">&times;</button>
+        </div>
+        <form id="createPointForm">
+            {% csrf_token %} {# Важно для POST-запросов в Django #}
+            <input type="hidden" id="pointLat">
+            <input type="hidden" id="pointLon">
+
+            <div>
+                <label for="pointAddress">Адрес:</label>
+                <input type="text" id="pointAddress" name="address" readonly> {# Только для чтения, заполняется автоматически #}
+            </div>
+
+            <div>
+                <label for="pointType">Тип точки:</label>
+                <select id="pointType" name="point_type">
+                    <option value="event" selected>Событие</option>
+                    {# Добавить другие типы, если они появятся в модели #}
+                    {# <option value="place">Место</option> #}
+                </select>
+            </div>
+
+            <div>
+                <label for="pointTags">Теги:</label>
+                {# Используем select multiple для Select2 #}
+                <select id="pointTags" name="tags" multiple="multiple" style="width: 100%;">
+                    {# Опции будут загружены через AJAX #}
+                </select>
+                <small>Начните вводить для поиска или добавьте новый тег и нажмите Enter.</small>
+            </div>
+
+            <div>
+                <label for="pointPopupText">Описание:</label>
+                <textarea id="pointPopupText" name="popup_text" rows="3"></textarea>
+            </div>
+
+             <div style="margin-top: 15px; text-align: right;"> {# Кнопки внизу справа #}
+                <button type="submit">Создать</button>
+                <button type="button" onclick="closeCreatePointModal()">Отмена</button>
+            </div>
+        </form>
+    </div>
+    {# Контекстное меню будет создано динамически в JS #}
 {% endblock %}
 
 {% block scripts %}
@@ -29,34 +222,150 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
      crossorigin=""></script>
+    {# Подключаем jQuery (нужен для Select2 и AJAX) #}
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    {# Подключаем Select2 JS #}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
     <script>
-        // Находим селектор (он все еще имеет тот же ID)
+        // URLs для API (используем тег url)
+        const pointsUrl = "{% url 'RackitoMap:get_map_points' %}";
+        const reverseGeocodeUrl = "{% url 'RackitoMap:reverse_geocode_proxy' %}";
+        const getTagsUrl = "{% url 'RackitoMap:get_tags' %}";
+        const createPointUrl = "{% url 'RackitoMap:create_point' %}";
+        const staticUrl = "{% static '' %}"; // Базовый URL для статики
+
+        // Находим элементы DOM
         const citySelect = document.getElementById('city-select');
+        const mapContainer = document.getElementById('map');
+        // const createPointButton = document.getElementById('createPointBtn'); // УДАЛЕНО
+        const createPointModal = document.getElementById('createPointModal');
+        const createPointForm = document.getElementById('createPointForm');
+        const pointLatInput = document.getElementById('pointLat');
+        const pointLonInput = document.getElementById('pointLon');
+        const pointAddressInput = document.getElementById('pointAddress');
+        const pointTypeSelect = document.getElementById('pointType');
+        const pointTagsSelect = $('#pointTags'); // jQuery объект для Select2
+        const pointPopupTextInput = document.getElementById('pointPopupText');
+
+        // Глобальные переменные
         let cityData = []; // Массив для хранения данных о городах
         const initialZoom = 11; // Начальный зум
         const defaultCoords = [55.7558, 37.6173]; // Координаты по умолчанию (Москва)
+        // let createPointMode = false; // УДАЛЕНО
+        let tempMarker = null; // Временный маркер для новой точки (остается)
+        let map = null; // Объект карты
+        let pointsLayer = null; // Слой для маркеров точек
+        let customContextMenu = null; // Переменная для хранения контекстного меню
+        let contextMenuLatLng = null; // Координаты, где было вызвано меню
 
-        // URL для получения точек (используем тег url)
-        const pointsUrl = "{% url 'RackitoMap:get_map_points' %}";
-
-        // Контейнер карты для изменения курсора
-        const mapContainer = document.getElementById('map');
+        // Функция для получения CSRF-токена (важно для POST-запросов в Django)
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
 
         // Инициализация карты
-        var map = L.map('map').setView(defaultCoords, initialZoom);
+        function initializeMap(initialCoords) {
+            if (map) return; // Инициализируем только один раз
 
-        // Слой для маркеров точек
-        var pointsLayer = L.layerGroup().addTo(map);
+            map = L.map('map').setView(initialCoords, initialZoom);
+            pointsLayer = L.layerGroup().addTo(map);
 
-        // Возвращаем стандартный слой OpenStreetMap
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        }).addTo(map);
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
 
-        // --- Загрузка и отображение точек --- //
+            // Загрузка точек при перемещении/зуме карты
+            map.on('moveend', loadPointsInBounds);
+            // Загрузить точки при первой загрузке (после установки вида)
+            map.whenReady(loadPointsInBounds);
 
-        async function loadAndDisplayPoints() {
+            // Обработчик клика по карте (теперь только скрывает меню)
+            map.on('click', hideContextMenu);
+
+            // Обработчик правого клика на карте
+            map.on('contextmenu', handleContextMenu);
+
+            // Скрываем меню при начале перемещения/зума
+            map.on('movestart', hideContextMenu);
+            map.on('zoomstart', hideContextMenu);
+
+
+            // Обработчики курсора при перетаскивании
+            map.on('mousedown', () => { mapContainer.style.cursor = 'grabbing'; });
+            map.on('mouseup', () => { mapContainer.style.cursor = 'pointer'; }); // Всегда pointer
+            map.on('mouseout', () => {
+                 if (mapContainer.style.cursor === 'grabbing') {
+                    mapContainer.style.cursor = 'pointer'; // Всегда pointer
+                 }
+            });
+        }
+
+        // Функция добавления маркера на карту (унифицированная, без изменений)
+        function addMarkerToMap(pointData) {
+            let iconUrl = `${staticUrl}img/default.png`; // Путь к иконке по умолчанию
+            if (pointData.point_type === 'event') {
+                 iconUrl = `${staticUrl}img/event.png`;
+            }
+            // TODO: Добавить другие типы и их иконки здесь, если нужно
+            // else if (pointData.point_type === 'place') { ... }
+
+             const markerIcon = L.icon({
+                iconUrl: iconUrl,
+                iconSize: [32, 37], // Размер иконки
+                iconAnchor: [16, 37], // Точка привязки иконки (низ центр)
+                popupAnchor: [0, -30] // Смещение всплывающего окна
+            });
+
+            const marker = L.marker([pointData.lat, pointData.lon], { icon: markerIcon });
+
+            // Формируем контент всплывающего окна
+            let popupContent = `<b>${pointData.popup_text || 'Точка'}</b><br>`;
+            if (pointData.address) {
+                 popupContent += `Адрес: ${pointData.address}<br>`;
+            }
+            if (pointData.point_type) {
+                // Отображаем название типа (можно сделать маппинг на фронте или передавать с бэка)
+                const typeDisplay = pointData.point_type === 'event' ? 'Событие' : pointData.point_type; // Простой пример
+                 popupContent += `Тип: ${typeDisplay}<br>`;
+            }
+            if (pointData.tags && pointData.tags.length > 0) {
+                 popupContent += `Теги: ${pointData.tags.join(', ')}`;
+            }
+            marker.bindPopup(popupContent.trim()); // Убираем лишние пробелы в конце
+
+            // Эффект при наведении
+            marker.on('mouseover', function (e) {
+                if (e.target && e.target._icon) { // Проверка на существование иконки
+                     e.target._icon.classList.add('marker-hover');
+                }
+            });
+            marker.on('mouseout', function (e) {
+                if (e.target && e.target._icon) { // Проверка на существование иконки
+                    e.target._icon.classList.remove('marker-hover');
+                }
+            });
+
+             pointsLayer.addLayer(marker);
+        }
+
+        // Функция загрузки точек в видимой области (без изменений)
+        async function loadPointsInBounds() {
+            if (!map) return; // Не загружать, если карта не инициализирована
+
             const bounds = map.getBounds();
             const url = new URL(pointsUrl, window.location.origin);
             url.searchParams.append('south', bounds.getSouth());
@@ -64,7 +373,7 @@
             url.searchParams.append('north', bounds.getNorth());
             url.searchParams.append('east', bounds.getEast());
 
-            console.log("Fetching points from:", url.toString()); // Для отладки
+            console.log("Fetching points from:", url.toString());
 
             try {
                 const response = await fetch(url);
@@ -77,51 +386,19 @@
                 pointsLayer.clearLayers();
 
                 // Добавляем новые маркеры
-                points.forEach(point => {
-                    let markerIcon;
-                    if (point.marker_icon_url) {
-                        markerIcon = L.icon({
-                            iconUrl: point.marker_icon_url,
-                            iconSize: [32, 32], // Размер иконки (пример)
-                            iconAnchor: [16, 32], // Точка привязки (низ по центру)
-                            popupAnchor: [0, -32], // Смещение попапа
-                            className: 'custom-map-marker-icon' // Добавляем класс для стилизации
-                        });
-                    } else {
-                        // Используем иконку по умолчанию, если нет кастомной
-                        markerIcon = L.icon({
-                             iconUrl: "{% static 'leaflet/images/marker-icon.png' %}", // Путь к стандартной иконке
-                             shadowUrl: "{% static 'leaflet/images/marker-shadow.png' %}",
-                             iconSize: [25, 41],
-                             iconAnchor: [12, 41],
-                             popupAnchor: [1, -34],
-                             shadowSize: [41, 41]
-                        });
-                    }
+                points.forEach(point => addMarkerToMap(point)); // Используем унифицированную функцию
 
-                    const marker = L.marker([point.lat, point.lon], { icon: markerIcon });
-
-                    if (point.popup_text) {
-                        marker.bindPopup(point.popup_text);
-                    }
-
-                    pointsLayer.addLayer(marker);
-                });
-                console.log(`Displayed ${points.length} points.`); // Для отладки
+                console.log(`Displayed ${points.length} points.`);
             } catch (error) {
                 console.error("Не удалось загрузить или отобразить точки:", error);
             }
         }
 
-        // Загрузка точек при инициализации и после перемещения карты
-        map.on('load', loadAndDisplayPoints);
-        map.on('moveend', loadAndDisplayPoints);
 
-        // --- Логика выбора города (обновлена) --- //
-
+        // --- Логика выбора города (остается без изменений) --- //
         async function loadCities() {
              try {
-                const response = await fetch("{% static 'cities_russia.json' %}");
+                const response = await fetch(`${staticUrl}cities_russia.json`);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 cityData = await response.json();
                 cityData.sort((a, b) => a.name.localeCompare(b.name, 'ru'));
@@ -134,51 +411,32 @@
                 });
 
                 const moscowIndex = cityData.findIndex(city => city.name === "Москва");
+                let initialCoords = defaultCoords; // Используем дефолтные по умолчанию
                 if (moscowIndex !== -1) {
                     citySelect.value = moscowIndex;
-                    // Установка вида инициирует 'moveend', точки загрузятся автоматически
-                    map.setView(cityData[moscowIndex].coords, initialZoom);
+                    initialCoords = cityData[moscowIndex].coords;
                 } else {
                     citySelect.value = "";
-                    // Если Москвы нет, точки загрузятся для вида по умолчанию через 'moveend'
-                    // или 'load', если карта еще не загрузилась
                 }
+                 // Инициализируем карту с найденными или дефолтными координатами
+                initializeMap(initialCoords);
+
             } catch (error) {
                 console.error("Не удалось загрузить города:", error);
+                 // Инициализируем карту с дефолтными координатами в случае ошибки
+                 initializeMap(defaultCoords);
             }
         }
 
         citySelect.addEventListener('change', function() {
             const selectedIndex = this.value;
-            if (selectedIndex !== "" && cityData[selectedIndex]) {
+            if (selectedIndex !== "" && cityData[selectedIndex] && map) {
                 const coords = cityData[selectedIndex].coords;
-                 // Установка вида инициирует 'moveend', точки загрузятся автоматически
-                map.setView(coords, initialZoom);
+                map.setView(coords, initialZoom); // setView инициирует 'moveend'
             }
         });
 
-        loadCities();
-
-        // --- Изменение курсора при перетаскивании --- //
-        if (mapContainer) {
-            map.on('mousedown', function () {
-                mapContainer.style.cursor = 'grabbing';
-            });
-
-            map.on('mouseup', function () {
-                mapContainer.style.cursor = 'pointer';
-            });
-            // Также возвращаем курсор, если он покинул карту во время перетаскивания
-            map.on('mouseout', function () {
-                if (mapContainer.style.cursor === 'grabbing') {
-                    mapContainer.style.cursor = 'pointer';
-                }
-            });
-        }
-
-
-        // --- Пользовательское контекстное меню --- //
-        let customContextMenu = null; // Переменная для хранения меню
+        // --- Функционал контекстного меню ---
 
         // Функция для создания меню (если его еще нет)
         function createContextMenu() {
@@ -186,22 +444,22 @@
 
             customContextMenu = document.createElement('div');
             customContextMenu.id = 'custom-context-menu';
-            customContextMenu.style.position = 'absolute'; // Позиционирование
-            customContextMenu.style.display = 'none'; // Скрыто по умолчанию
-            customContextMenu.style.zIndex = '1000'; // Поверх карты
+            // Стили применяются через CSS
 
-            const createPointButton = document.createElement('button');
-            createPointButton.textContent = 'Создать новую точку';
-            createPointButton.id = 'create-point-btn';
-            createPointButton.onclick = function() {
-                // Пока ничего не делаем, просто скрываем меню
-                console.log("Кнопка 'Создать новую точку' нажата."); // Для отладки
-                hideContextMenu();
-                // TODO: Добавить логику создания точки
+            const createPointBtnContextMenu = document.createElement('button');
+            createPointBtnContextMenu.textContent = 'Создать новую точку';
+            createPointBtnContextMenu.onclick = function() {
+                 initiateCreatePoint(); // Вызываем новую функцию
+                 hideContextMenu();
             };
+            // TODO: Добавить другие пункты меню при необходимости
+            // const centerMapBtn = document.createElement('button');
+            // centerMapBtn.textContent = 'Центрировать карту здесь';
+            // centerMapBtn.onclick = function() { ... };
+            // customContextMenu.appendChild(centerMapBtn);
 
-            customContextMenu.appendChild(createPointButton);
-            document.body.appendChild(customContextMenu); // Добавляем в body, чтобы избежать проблем с z-index внутри карты
+            customContextMenu.appendChild(createPointBtnContextMenu);
+            document.body.appendChild(customContextMenu); // Добавляем в body
         }
 
         // Функция для показа меню
@@ -218,71 +476,156 @@
             if (customContextMenu) {
                 customContextMenu.style.display = 'none';
             }
+            // Также скрываем временный маркер, если он есть и не была открыта форма
+            if (tempMarker && createPointModal.style.display === 'none') {
+                if (map.hasLayer(tempMarker)) {
+                    map.removeLayer(tempMarker);
+                }
+                tempMarker = null;
+            }
         }
 
         // Обработчик правого клика на карте
-        map.on('contextmenu', function(e) {
+        function handleContextMenu(e) {
             e.originalEvent.preventDefault(); // Отменяем стандартное меню браузера
+            contextMenuLatLng = e.latlng; // Сохраняем координаты клика
             showContextMenu(e);
+        }
+
+        // --- Функционал создания точки (теперь инициируется из контекстного меню) ---
+
+        // Инициализация Select2 для тегов (без изменений)
+        pointTagsSelect.select2({
+            tags: true, // Разрешить создание новых тегов
+            tokenSeparators: [',', ' '], // Разделители для новых тегов
+            placeholder: "Выберите или добавьте теги",
+            dropdownParent: $('#createPointModal'), // Указываем родителя для выпадающего списка
+            ajax: {
+                url: getTagsUrl,
+                dataType: 'json',
+                delay: 250, // Задержка перед отправкой запроса
+                data: function (params) {
+                    return {
+                        term: params.term // Параметр поиска
+                    };
+                },
+                processResults: function (data) {
+                    // Преобразуем данные в формат, понятный Select2
+                    return {
+                        results: data.map(item => ({ id: item, text: item }))
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 1 // Начинать поиск после ввода 1 символа
         });
 
-        // Скрываем меню при клике левой кнопкой на карте
-        map.on('click', hideContextMenu);
+        // Функция, вызываемая из контекстного меню для начала создания точки
+        function initiateCreatePoint() {
+             if (!contextMenuLatLng) return; // Если координаты не сохранены
 
-        // Скрываем меню при начале перемещения карты
-        map.on('movestart', hideContextMenu);
+             const coords = contextMenuLatLng;
+             console.log('Initiating point creation at:', coords);
 
-        // Скрываем меню при начале изменения масштаба
-        map.on('zoomstart', hideContextMenu);
+             // Удаляем старый временный маркер
+             if (tempMarker) {
+                 if (map.hasLayer(tempMarker)) map.removeLayer(tempMarker);
+                 tempMarker = null;
+             }
 
-        // --- Обратное геокодирование по клику (через Django Proxy) --- //
-        /*
-        map.on('click', function(e) {
-            const lat = e.latlng.lat;
-            const lon = e.latlng.lng;
+             // Добавляем временный маркер
+             tempMarker = L.marker(coords).addTo(map).bindPopup("Получение адреса...").openPopup();
 
-            // URL нашего бэкенд-прокси
-            const proxyUrl = `{% url 'RackitoMap:reverse_geocode_proxy' %}?lat=${lat}&lon=${lon}`;
-
-            // Создаем временный попап с сообщением о загрузке
-            const popup = L.popup()
-                .setLatLng(e.latlng)
-                .setContent("Загрузка информации...")
-                .openOn(map);
-
-            // Делаем запрос к нашему Django бэкенду
-            fetch(proxyUrl)
+             // Запрашиваем адрес
+             fetch(`${reverseGeocodeUrl}?lat=${coords.lat}&lon=${coords.lng}`)
                 .then(response => {
-                    if (!response.ok) {
-                        // Пытаемся прочитать тело ошибки, если оно есть
-                        return response.json().then(errData => {
-                            throw new Error(errData.error || `HTTP error! status: ${response.status}`);
-                        }).catch(() => {
-                            // Если тело ошибки не JSON или пустое
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        });
-                    }
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     return response.json();
                 })
                 .then(data => {
-                    console.log("Proxy response:", data); // Ответ от нашего бэкенда
-                    let popupContent = "Информация не найдена.";
-                    // Проверяем наличие display_name или поля error в ответе от бэкенда
-                    if (data && data.display_name) {
-                        popupContent = data.display_name;
-                    } else if (data.error) {
-                         popupContent = `Ошибка: ${data.error}`;
-                    }
-                    // Обновляем контент существующего попапа
-                    popup.setContent(popupContent);
+                    console.log("Geocode data:", data);
+                    const address = data.display_name || 'Адрес не найден';
+                    openCreatePointModal(coords.lat, coords.lng, address); // Открываем форму
+                    if (tempMarker) tempMarker.setPopupContent("Заполните форму"); // Обновляем текст попапа
                 })
                 .catch(error => {
-                    console.error("Ошибка запроса к прокси геокодирования:", error);
-                    // Отображаем текст ошибки из error.message
-                    popup.setContent(`Не удалось получить информацию: ${error.message}`);
+                    console.error('Error fetching reverse geocode:', error);
+                    openCreatePointModal(coords.lat, coords.lng, 'Не удалось получить адрес');
+                    if (tempMarker) tempMarker.setPopupContent("Не удалось получить адрес.<br>Заполните форму");
                 });
+        }
+
+        // Открытие модального окна/формы (без изменений)
+        function openCreatePointModal(lat, lon, address) {
+            pointLatInput.value = lat;
+            pointLonInput.value = lon;
+            pointAddressInput.value = address;
+            // Сбрасываем остальные поля
+            pointTypeSelect.value = 'event';
+            pointTagsSelect.val(null).trigger('change'); // Сброс Select2
+            pointPopupTextInput.value = '';
+
+            createPointModal.style.display = 'block';
+        }
+
+        // Закрытие модального окна/формы (без изменений, но tempMarker скрывается в hideContextMenu)
+        window.closeCreatePointModal = function() { // Делаем глобальной, чтобы onclick работал
+            createPointModal.style.display = 'none';
+            // Удаляем временный маркер, если он еще есть
+             if (tempMarker) {
+                 if (map.hasLayer(tempMarker)) { // Проверяем, есть ли маркер на карте
+                     map.removeLayer(tempMarker);
+                 }
+                tempMarker = null;
+            }
+        }
+
+        // Обработка отправки формы (без изменений)
+        createPointForm.addEventListener('submit', (e) => {
+            e.preventDefault(); // Предотвращаем стандартную отправку формы
+
+            const pointData = {
+                lat: parseFloat(pointLatInput.value),
+                lon: parseFloat(pointLonInput.value),
+                address: pointAddressInput.value,
+                point_type: pointTypeSelect.value,
+                tags: pointTagsSelect.val() || [], // Получаем выбранные теги из Select2
+                popup_text: pointPopupTextInput.value.trim()
+            };
+
+            console.log('Sending data:', pointData);
+
+            fetch(createPointUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken // Добавляем CSRF-токен
+                },
+                body: JSON.stringify(pointData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { // Пытаемся получить детали ошибки
+                        throw new Error(`HTTP ${response.status}: ${JSON.stringify(err)}`);
+                    }).catch(() => { // Если тело ошибки не JSON
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(newPoint => {
+                console.log('Point created:', newPoint);
+                addMarkerToMap(newPoint); // Добавляем новый маркер на карту
+                closeCreatePointModal(); // Закрываем форму (это также удалит tempMarker)
+            })
+            .catch(error => {
+                console.error('Error creating point:', error);
+                alert(`Ошибка при создании точки: ${error.message}`);
+            });
         });
-        */
+
+        // --- Запуск ---
+        loadCities(); // Загружаем города, что инициирует инициализацию карты
 
     </script>
 {% endblock %} 
