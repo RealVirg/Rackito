@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.templatetags.static import static # Импортируем static
 
 # Create your models here.
 
@@ -24,11 +25,6 @@ class Point(models.Model):
 
     latitude = models.FloatField(verbose_name="Широта")
     longitude = models.FloatField(verbose_name="Долгота")
-    marker_image = models.ImageField(
-        upload_to='map_markers/',
-        verbose_name="Изображение маркера",
-        help_text="Изображение, которое будет отображаться на карте для этой точки."
-    )
     tags = models.ManyToManyField(
         Tag,
         blank=True, # Можно не указывать теги
@@ -54,6 +50,30 @@ class Point(models.Model):
         verbose_name="Адрес",
         help_text="Адрес, полученный с помощью обратного геокодирования."
     )
+
+    def get_icon_url(self):
+        """Возвращает URL иконки маркера.
+
+        Приоритет у загруженного изображения. Если его нет,
+        возвращает путь к статической иконке на основе типа точки.
+        """
+        if self.marker_image:
+            return self.marker_image.url
+        else:
+            # Словарь соответствия типов иконок статическим файлам
+            type_icons = {
+                'event': 'img/markers/event.png',
+                # Добавь сюда другие типы и пути к их иконкам
+                # 'place': 'img/markers/place.png',
+            }
+            # Получаем путь к иконке для текущего типа или используем дефолтную, если тип неизвестен
+            icon_path = type_icons.get(self.point_type, 'img/markers/default.png') # Нужна default.png!
+            try:
+                return static(icon_path)
+            except ValueError: # На случай, если static() не может найти файл
+                print(f"Warning: Static file not found for icon path: {icon_path}")
+                # Можно вернуть URL к базовой дефолтной иконке Leaflet или None
+                return None # Или static('img/markers/default.png') если она точно есть
 
     def __str__(self):
         return f"Точка ({self.latitude}, {self.longitude})"

@@ -14,8 +14,6 @@ urlpatterns = [
     # path('', views.map_view, name='map_view'), # Раскомментируйте и создайте view, если нужно
     # Добавляем новый URL для обратного геокодирования
     path('reverse-geocode/', views.reverse_geocode_proxy, name='reverse_geocode_proxy'),
-    # URL для получения списка тегов (автодополнение)
-    path('tags/', views.get_tags_view, name='get_tags'),
-    # URL для создания новой точки
-    path('points/create/', views.create_point_view, name='create_point'),
+    # Добавляем URL для автодополнения тегов
+    path('tags/autocomplete/', views.tag_autocomplete_view, name='tag_autocomplete'),
 ] 

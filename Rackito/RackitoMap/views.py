@@ -5,12 +5,13 @@ import json
 import random
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
-from .forms import UserRegistrationForm, VerifyCodeForm
+from .forms import UserRegistrationForm, VerifyCodeForm, PointForm
 from django.contrib import messages
 from django.urls import reverse
 from django.contrib.auth import login, get_user_model, authenticate, logout
 from django.conf import settings # Импортируем settings
 import requests # Импортируем requests для HTTP-запросов
+from django.db.models import Count # Импортируем Count для сортировки по популярности
 User = get_user_model()
 
 # Create your views here.
@@ -165,9 +166,12 @@ def get_map_points_in_bounds(request):
 @login_required(login_url='index')
 def map_view(request):
     """Отображает страницу с картой."""
-    # В будущем здесь можно передавать дополнительный контекст в шаблон,
-    # например, список тегов для фильтрации или начальные настройки карты.
-    context = {}
+    # Создаем экземпляр формы для добавления точки
+    point_form = PointForm()
+    # Передаем форму в контекст
+    context = {
+        'point_form': point_form
+    }
     return render(request, 'RackitoMap/map_template.html', context)
 
 # Новая view для проксирования запроса обратного геокодирования
@@ -206,70 +210,22 @@ def reverse_geocode_proxy(request):
         print(f"Непредвиденная ошибка в reverse_geocode_proxy: {e}")
         return JsonResponse({'error': 'Внутренняя ошибка сервера.'}, status=500)
 
+# Новое представление для автодополнения тегов
+@login_required # Только для авторизованных
+def tag_autocomplete_view(request):
+    query = request.GET.get('query', '')
+    if len(query) < 1: # Не ищем по слишком короткому запросу (можно настроить)
+        return JsonResponse([], safe=False)
+
+    tags = Tag.objects.filter(name__icontains=query)\
+                      .annotate(num_points=Count('points'))\
+                      .order_by('-num_points', 'name')[:10] # Ограничим количество результатов
+
+    # Tagify ожидает список строк или объектов со свойством 'value'
+    results = [tag.name for tag in tags]
+    # Альтернативно, если Tagify нужен объект:
+    # results = [{'value': tag.name} for tag in tags]
+
+    return JsonResponse(results, safe=False)
+
 # --- Views для аутентификации --- #
-
-@login_required
-def get_tags_view(request):
-    """Возвращает список существующих тегов для автодополнения."""
-    if request.method == 'GET':
-        query = request.GET.get('term', '') # 'term' используется многими библиотеками автодополнения
-        tags = Tag.objects.filter(name__icontains=query).values_list('name', flat=True)[:10] # Ограничиваем 10 результатами
-        return JsonResponse(list(tags), safe=False)
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
-
-@login_required
-def create_point_view(request):
-    """Создает новую точку на карте."""
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            lat = data.get('lat')
-            lon = data.get('lon')
-            popup_text = data.get('popup_text', '')
-            address = data.get('address', '')
-            point_type = data.get('point_type', 'event') # Тип по умолчанию 'event'
-            tag_names = data.get('tags', [])
-
-            if lat is None or lon is None:
-                return JsonResponse({'error': 'Missing latitude or longitude'}, status=400)
-
-            # Обработка тегов: получаем существующие или создаем новые
-            tags = []
-            for name in tag_names:
-                tag, created = Tag.objects.get_or_create(name=name.strip())
-                tags.append(tag)
-
-            # Создание точки
-            # Пока не обрабатываем marker_image, предполагаем, что он будет зависеть от point_type
-            point = Point.objects.create(
-                latitude=lat,
-                longitude=lon,
-                popup_text=popup_text,
-                address=address,
-                point_type=point_type
-                # marker_image будет обработан позже (например, во фронтенде по типу)
-            )
-            point.tags.set(tags)
-
-            # Возвращаем данные созданной точки, включая теги
-            # (можно использовать сериализатор, но пока сделаем вручную)
-            response_data = {
-                'id': point.id,
-                'lat': point.latitude,
-                'lon': point.longitude,
-                'popup_text': point.popup_text,
-                'address': point.address,
-                'point_type': point.point_type,
-                'tags': [tag.name for tag in point.tags.all()],
-                'marker_icon_url': f"{settings.STATIC_URL}img/markers/{point.point_type}.png" # Формируем URL иконки на основе типа
-            }
-            return JsonResponse(response_data, status=201) # 201 Created
-
-        except json.JSONDecodeError:
-            return JsonResponse({'error': 'Invalid JSON'}, status=400)
-        except Exception as e:
-            # Логируем ошибку
-            print(f"Error creating point: {e}")
-            return JsonResponse({'error': 'Failed to create point', 'details': str(e)}, status=500)
-
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
